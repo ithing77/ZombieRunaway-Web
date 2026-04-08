@@ -112,7 +112,8 @@ class GameScene extends Phaser.Scene {
     if (this.isGameOver) return;
     this.currentChar = this.currentChar === 'taepyeong' ? 'yunseul' : 'taepyeong';
     this.player.fillColor = CHARS[this.currentChar].color;
-    this.jumpCount = 0;
+    // 공중에서 교체 시 점프 소진 상태로 설정 — 착지 후에만 다시 점프 가능
+    this.jumpCount = this.player.body.blocked.down ? 0 : 2;
     this.isGliding = false;
     this.charLabel.setText(this.getCharLabel());
     this.abilityLabel.setText(this.getAbilityLabel());
