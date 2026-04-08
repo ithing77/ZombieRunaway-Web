@@ -7,9 +7,13 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // 바닥 생성 (초록 박스, 고정 물리 오브젝트)
+    // 월드 크기 설정 (가로 10000px, 세로 540px) — 카메라가 이 범위 안에서 이동
+    this.physics.world.setBounds(0, 0, 10000, 540);
+    this.cameras.main.setBounds(0, 0, 10000, 540);
+
+    // 바닥 생성 (초록 박스, 월드 전체 너비로 고정)
     this.ground = this.physics.add.staticGroup();
-    const groundBox = this.add.rectangle(480, 520, 960, 40, 0x44aa44);
+    const groundBox = this.add.rectangle(5000, 520, 10000, 40, 0x44aa44);
     this.physics.add.existing(groundBox, true);
     this.ground.add(groundBox);
 
@@ -38,6 +42,9 @@ class GameScene extends Phaser.Scene {
 
     // JUMP 버튼 터치/클릭 이벤트
     this.jumpBtn.on('pointerdown', () => this.doJump());
+
+    // 카메라가 플레이어를 따라가도록 설정
+    this.cameras.main.startFollow(this.player, true, 1, 1);
   }
 
   doJump() {
