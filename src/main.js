@@ -256,9 +256,13 @@ const config = {
   width: 960,
   height: 540,
   backgroundColor: '#1a1a2e',
+  render: {
+    pixelArt: true,      // 픽셀아트 안티앨리어싱 끄기
+    roundPixels: true,   // 소수점 위치 반올림 → 떨림 방지
+  },
   physics: {
     default: 'arcade',
-    arcade: { gravity: { y: 800 }, debug: true }
+    arcade: { gravity: { y: 800 }, debug: false }
   },
   scene: [GameScene],
   scale: {
