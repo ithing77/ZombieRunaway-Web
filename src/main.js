@@ -22,8 +22,27 @@ class GameScene extends Phaser.Scene {
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
+    // 공중 플랫폼 배치 — [x, y, 너비] 배열로 관리
+    const platformData = [
+      { x: 400,  y: 420, w: 160 },
+      { x: 700,  y: 370, w: 160 },
+      { x: 1000, y: 320, w: 160 },
+      { x: 1300, y: 400, w: 200 },
+      { x: 1600, y: 350, w: 160 },
+      { x: 1900, y: 420, w: 200 },
+    ];
+
+    this.platforms = this.physics.add.staticGroup();
+    platformData.forEach(p => {
+      const box = this.add.rectangle(p.x, p.y, p.w, 20, 0x888844);
+      this.physics.add.existing(box, true);
+      this.platforms.add(box);
+    });
+
     // 바닥 충돌 설정
     this.physics.add.collider(this.player, this.ground);
+    // 플랫폼 충돌 설정
+    this.physics.add.collider(this.player, this.platforms);
 
     // 점프 입력 — 스페이스바
     this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
