@@ -34,12 +34,79 @@ class BaseStage extends Phaser.Scene {
     this.load.image('yunseul',   'assets/yunseul.png');
   }
 
+  // 패럴랙스 배경 텍스처 생성 (플레이스홀더 — 나중에 실제 이미지로 교체)
+  createBgTextures() {
+    // 레이어1: 하늘 + 먼 건물 실루엣
+    if (!this.textures.exists('bg_layer1')) {
+      const g1 = this.make.graphics({ x: 0, y: 0, add: false });
+      g1.fillStyle(0x0d0d2a); g1.fillRect(0, 0, 960, 540);
+      // 별 점들
+      g1.fillStyle(0xffffff, 0.6);
+      [80,200,350,500,650,800,920,140,300,450,600,750,880].forEach((x, i) => {
+        g1.fillRect(x, 20 + (i % 5) * 30, 2, 2);
+      });
+      // 먼 건물 실루엣 (단색 블록)
+      g1.fillStyle(0x1a1a3a);
+      [[50,320,60,180],[160,350,80,150],[280,300,50,220],[400,340,70,180],
+       [520,310,60,210],[640,360,90,160],[760,330,55,190],[870,345,70,175]
+      ].forEach(([x,y,w,h]) => g1.fillRect(x, y, w, h));
+      g1.generateTexture('bg_layer1', 960, 540);
+      g1.destroy();
+    }
+
+    // 레이어2: 주택/학교 건물
+    if (!this.textures.exists('bg_layer2')) {
+      const g2 = this.make.graphics({ x: 0, y: 0, add: false });
+      g2.fillStyle(0x00000000, 0); g2.fillRect(0, 0, 960, 540); // 투명 배경
+      g2.fillStyle(0x223322);
+      [[0,380,120,160],[130,350,100,190],[240,400,80,140],[330,360,110,180],
+       [450,370,130,170],[590,390,90,150],[690,355,115,185],[810,375,100,165],
+       [915,360,45,180]
+      ].forEach(([x,y,w,h]) => g2.fillRect(x, y, w, h));
+      // 창문 (밝은 점)
+      g2.fillStyle(0xffff88, 0.5);
+      [[20,400,20,15],[60,400,20,15],[150,380,18,12],[200,380,18,12],
+       [460,400,22,14],[510,400,22,14],[700,385,20,13],[750,385,20,13]
+      ].forEach(([x,y,w,h]) => g2.fillRect(x, y, w, h));
+      g2.generateTexture('bg_layer2', 960, 540);
+      g2.destroy();
+    }
+
+    // 레이어3: 담장 + 전봇대 (가장 빠름)
+    if (!this.textures.exists('bg_layer3')) {
+      const g3 = this.make.graphics({ x: 0, y: 0, add: false });
+      g3.fillStyle(0x00000000, 0); g3.fillRect(0, 0, 960, 540);
+      // 담장
+      g3.fillStyle(0x443322);
+      g3.fillRect(0, 460, 960, 40);
+      // 담장 블록 줄눈
+      g3.fillStyle(0x332211);
+      for (let x = 0; x < 960; x += 60) g3.fillRect(x, 460, 2, 40);
+      for (let x = 30; x < 960; x += 60) g3.fillRect(x, 480, 2, 20);
+      // 전봇대
+      g3.fillStyle(0x222222);
+      [100, 280, 480, 680, 860].forEach(x => {
+        g3.fillRect(x, 340, 8, 120);   // 기둥
+        g3.fillRect(x - 20, 345, 48, 5); // 횡대
+      });
+      g3.generateTexture('bg_layer3', 960, 540);
+      g3.destroy();
+    }
+  }
+
   create() {
     const d = this.getStageData();
     this.stageData = d;
 
     // 배경색 적용
     this.cameras.main.setBackgroundColor(d.bgColor);
+
+    // 패럴랙스 배경 텍스처 생성 및 레이어 배치
+    // setScrollFactor(0) → 카메라 이동에 고정, tilePositionX로 직접 제어
+    this.createBgTextures();
+    this.bgLayer1 = this.add.tileSprite(480, 270, 960, 540, 'bg_layer1').setScrollFactor(0);
+    this.bgLayer2 = this.add.tileSprite(480, 270, 960, 540, 'bg_layer2').setScrollFactor(0);
+    this.bgLayer3 = this.add.tileSprite(480, 270, 960, 540, 'bg_layer3').setScrollFactor(0);
 
     // 월드 크기
     this.physics.world.setBounds(0, 0, d.worldWidth, 540);
@@ -217,6 +284,12 @@ class BaseStage extends Phaser.Scene {
   update() {
     if (this.isGameOver || this.isCleared) return;
     this.player.body.setVelocityX(200);
+
+    // 패럴랙스 스크롤 — 카메라 위치에 비례해 각 레이어를 다른 속도로 이동
+    const scrollX = this.cameras.main.scrollX;
+    this.bgLayer1.tilePositionX = scrollX * 0.2; // 뒤 (가장 느림)
+    this.bgLayer2.tilePositionX = scrollX * 0.5; // 중간
+    this.bgLayer3.tilePositionX = scrollX * 0.8; // 앞 (가장 빠름)
 
     if (this.player.body.blocked.down) {
       this.jumpCount = 0;
