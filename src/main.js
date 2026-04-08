@@ -1,10 +1,17 @@
 // main.js — 게임 설정 및 씬 등록
 // Phaser CDN은 index.html에서 로드, 여기서 게임 초기화
 
-// 캐릭터 정보 — 색상과 이름 (나중에 스프라이트로 교체)
+// 캐릭터 정보
 const CHARS = {
   taepyeong: { color: 0x4488ff, label: '태평' },
   yunseul:   { color: 0xff88aa, label: '윤슬' },
+};
+
+// 돈 아이템 종류 — value(원), color, size, label
+const MONEY_TYPES = {
+  coin100:  { value: 100,  color: 0xcccccc, size: 18, label: '100' },
+  coin500:  { value: 500,  color: 0xffdd44, size: 24, label: '500' },
+  bill1000: { value: 1000, color: 0x44cc66, size: 28, label: '1000' },
 };
 
 class GameScene extends Phaser.Scene {
@@ -39,10 +46,44 @@ class GameScene extends Phaser.Scene {
       this.platforms.add(box);
     });
 
+    // 돈 아이템 배치 — [x, y, type]
+    // 바닥 위(y=470), 플랫폼 위, 공중 등 다양하게 배치
+    const moneyData = [
+      { x: 250,  y: 470, type: 'coin100' },
+      { x: 350,  y: 470, type: 'coin100' },
+      { x: 420,  y: 390, type: 'coin500' },  // 첫 플랫폼 위
+      { x: 500,  y: 470, type: 'coin100' },
+      { x: 600,  y: 470, type: 'coin100' },
+      { x: 720,  y: 340, type: 'coin500' },  // 두번째 플랫폼 위
+      { x: 800,  y: 470, type: 'bill1000' },
+      { x: 1000, y: 290, type: 'coin500' },  // 세번째 플랫폼 위
+      { x: 1100, y: 470, type: 'coin100' },
+      { x: 1200, y: 470, type: 'coin100' },
+      { x: 1300, y: 370, type: 'bill1000' }, // 네번째 플랫폼 위
+      { x: 1450, y: 470, type: 'coin500' },
+      { x: 1600, y: 320, type: 'bill1000' }, // 다섯번째 플랫폼 위
+      { x: 1750, y: 470, type: 'coin100' },
+      { x: 1900, y: 390, type: 'coin500' },  // 여섯번째 플랫폼 위
+      { x: 2000, y: 470, type: 'bill1000' },
+    ];
+
+    this.moneyGroup = this.physics.add.staticGroup();
+    moneyData.forEach(m => {
+      const info = MONEY_TYPES[m.type];
+      // 천원짜리는 직사각형, 동전은 원형 (원은 rectangle로 근사)
+      const item = this.add.circle(m.x, m.y, info.size / 2, info.color);
+      this.physics.add.existing(item, true);
+      // 타입 정보 저장 (수집 시 value 참조)
+      item.moneyValue = info.value;
+      item.moneyLabel = info.label;
+      this.moneyGroup.add(item);
+    });
+
     // 현재 캐릭터 상태
     this.currentChar = 'taepyeong';
-    this.jumpCount = 0;      // 태평 2단점프 카운트
-    this.isGliding = false;  // 윤슬 활공 중 여부
+    this.jumpCount = 0;
+    this.isGliding = false;
+    this.totalMoney = 0; // 획득한 총 금액
 
     // 캐릭터 박스
     this.player = this.add.rectangle(100, 460, 40, 50, CHARS.taepyeong.color);
@@ -53,26 +94,25 @@ class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.ground);
     this.physics.add.collider(this.player, this.platforms);
 
-    // 좀비 그룹 (동적 물리)
+    // 돈 수집 overlap
+    this.physics.add.overlap(this.player, this.moneyGroup, this.collectMoney, null, this);
+
+    // 좀비 그룹
     this.zombies = this.physics.add.group();
-    // 3초마다 좀비 스폰
     this.time.addEvent({
       delay: 3000,
       loop: true,
       callback: this.spawnZombie,
       callbackScope: this,
     });
-
-    // 좀비-플레이어 충돌 → 게임오버
     this.physics.add.overlap(this.player, this.zombies, this.onGameOver, null, this);
 
-    // 게임 진행 중 여부
     this.isGameOver = false;
 
     // 점프 키
     this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-    // --- UI (scrollFactor 0 = 화면 고정) ---
+    // --- UI ---
 
     // JUMP 버튼 (우하단)
     this.jumpBtn = this.add.rectangle(880, 490, 120, 60, 0xffaa00)
@@ -94,10 +134,15 @@ class GameScene extends Phaser.Scene {
       fontSize: '20px', color: '#ffffff'
     }).setScrollFactor(0);
 
-    // 능력 설명 (이름 아래)
+    // 능력 설명
     this.abilityLabel = this.add.text(20, 46, this.getAbilityLabel(), {
       fontSize: '14px', color: '#aaaaaa'
     }).setScrollFactor(0);
+
+    // 보유 금액 (우상단)
+    this.moneyLabel = this.add.text(940, 20, '💰 0원', {
+      fontSize: '20px', color: '#ffdd44', fontStyle: 'bold'
+    }).setOrigin(1, 0).setScrollFactor(0);
 
     // 카메라 팔로우
     this.cameras.main.startFollow(this.player, true, 1, 1);
@@ -108,11 +153,17 @@ class GameScene extends Phaser.Scene {
     return this.currentChar === 'taepyeong' ? '2단 점프' : '활공 (점프 유지)';
   }
 
+  collectMoney(player, item) {
+    // 아이템 비활성화 (화면에서 제거)
+    item.destroy();
+    this.totalMoney += item.moneyValue;
+    this.moneyLabel.setText(`💰 ${this.totalMoney.toLocaleString()}원`);
+  }
+
   doSwap() {
     if (this.isGameOver) return;
     this.currentChar = this.currentChar === 'taepyeong' ? 'yunseul' : 'taepyeong';
     this.player.fillColor = CHARS[this.currentChar].color;
-    // 공중에서 교체 시 점프 소진 상태로 설정 — 착지 후에만 다시 점프 가능
     this.jumpCount = this.player.body.blocked.down ? 0 : 2;
     this.isGliding = false;
     this.charLabel.setText(this.getCharLabel());
@@ -121,19 +172,15 @@ class GameScene extends Phaser.Scene {
 
   doJump() {
     if (this.isGameOver) return;
-
     if (this.currentChar === 'taepyeong') {
-      // 태평: 최대 2번 점프
       if (this.jumpCount < 2) {
         this.player.body.setVelocityY(-600);
         this.jumpCount++;
       }
     } else {
-      // 윤슬: 바닥에서 1번 점프 + 공중에서 활공 시작
       if (this.player.body.blocked.down) {
         this.player.body.setVelocityY(-600);
       } else {
-        // 공중에서 점프 버튼 → 활공 모드 진입
         this.isGliding = true;
       }
     }
@@ -141,69 +188,56 @@ class GameScene extends Phaser.Scene {
 
   spawnZombie() {
     if (this.isGameOver) return;
-
-    // 플레이어 오른쪽 화면 끝 + 약간 밖에서 스폰
     const spawnX = this.player.x + 600;
     const zombie = this.add.rectangle(spawnX, 460, 36, 50, 0xff3333);
     this.physics.add.existing(zombie);
     zombie.body.setCollideWorldBounds(false);
-    zombie.body.setGravityY(0); // 자체 중력 추가 없음 (월드 중력 그대로)
-
-    // 바닥 위에 서도록 충돌
     this.physics.add.collider(zombie, this.ground);
-
-    // 플레이어 방향으로 이동
     zombie.body.setVelocityX(-120);
-
     this.zombies.add(zombie);
   }
 
   onGameOver() {
     if (this.isGameOver) return;
     this.isGameOver = true;
-
-    // 모든 움직임 정지
     this.player.body.setVelocityX(0);
     this.zombies.getChildren().forEach(z => z.body.setVelocityX(0));
 
-    // 게임오버 텍스트
-    this.add.text(480, 250, 'GAME OVER', {
+    this.add.text(480, 220, 'GAME OVER', {
       fontSize: '56px', color: '#ff3333', fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0);
 
-    this.add.text(480, 320, '화면을 탭하면 다시 시작', {
+    // 최종 획득 금액 표시
+    this.add.text(480, 290, `획득 금액: ${this.totalMoney.toLocaleString()}원`, {
+      fontSize: '28px', color: '#ffdd44'
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    this.add.text(480, 340, '화면을 탭하면 다시 시작', {
       fontSize: '22px', color: '#ffffff'
     }).setOrigin(0.5).setScrollFactor(0);
 
-    // 탭/클릭으로 재시작
     this.input.once('pointerdown', () => this.scene.restart());
     this.input.keyboard.once('keydown', () => this.scene.restart());
   }
 
   update() {
     if (this.isGameOver) return;
-
-    // 자동 우측 이동
     this.player.body.setVelocityX(200);
 
-    // 바닥 착지 시 점프 카운트 리셋
     if (this.player.body.blocked.down) {
       this.jumpCount = 0;
       this.isGliding = false;
     }
 
-    // 윤슬 활공: 공중에서 isGliding 중이면 낙하 속도를 느리게 유지
     if (this.currentChar === 'yunseul' && this.isGliding && !this.player.body.blocked.down) {
       if (this.player.body.velocity.y > 60) {
-        this.player.body.setVelocityY(60); // 천천히 떠 있는 느낌
+        this.player.body.setVelocityY(60);
       }
     }
 
-    // 스페이스바 점프
     if (Phaser.Input.Keyboard.JustDown(this.jumpKey)) {
       this.doJump();
     }
-    // 스페이스바 떼면 활공 해제
     if (Phaser.Input.Keyboard.JustUp(this.jumpKey)) {
       this.isGliding = false;
     }
