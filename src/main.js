@@ -82,10 +82,10 @@ class GameScene extends Phaser.Scene {
     this.jumpBtn.on('pointerdown', () => this.doJump());
     this.jumpBtn.on('pointerup',   () => { this.isGliding = false; });
 
-    // SWAP 버튼 (좌하단)
-    this.swapBtn = this.add.rectangle(80, 490, 120, 60, 0xaa44ff)
+    // SWAP 버튼 (JUMP 위쪽)
+    this.swapBtn = this.add.rectangle(880, 420, 120, 60, 0xaa44ff)
       .setScrollFactor(0).setInteractive();
-    this.add.text(80, 490, 'SWAP', { fontSize: '22px', color: '#fff', fontStyle: 'bold' })
+    this.add.text(880, 420, 'SWAP', { fontSize: '22px', color: '#fff', fontStyle: 'bold' })
       .setOrigin(0.5).setScrollFactor(0);
     this.swapBtn.on('pointerdown', () => this.doSwap());
 
