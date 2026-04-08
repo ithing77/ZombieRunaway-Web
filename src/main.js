@@ -1,10 +1,10 @@
 // main.js — 게임 설정 및 씬 등록
 // Phaser CDN은 index.html에서 로드, 여기서 게임 초기화
 
-// 캐릭터 정보
+// 캐릭터 정보 — texture키는 preload에서 로드한 이름과 일치
 const CHARS = {
-  taepyeong: { color: 0x4488ff, label: '태평' },
-  yunseul:   { color: 0xff88aa, label: '윤슬' },
+  taepyeong: { texture: 'taepyeong', label: '태평' },
+  yunseul:   { texture: 'yunseul',   label: '윤슬' },
 };
 
 // 돈 아이템 종류 — value(원), color, size, label
@@ -17,6 +17,12 @@ const MONEY_TYPES = {
 class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
+  }
+
+  preload() {
+    // 캐릭터 스프라이트 이미지 로드
+    this.load.image('taepyeong', 'assets/taepyeong.png');
+    this.load.image('yunseul',   'assets/yunseul.png');
   }
 
   create() {
@@ -85,9 +91,10 @@ class GameScene extends Phaser.Scene {
     this.isGliding = false;
     this.totalMoney = 0; // 획득한 총 금액
 
-    // 캐릭터 박스
-    this.player = this.add.rectangle(100, 460, 40, 50, CHARS.taepyeong.color);
-    this.physics.add.existing(this.player);
+    // 캐릭터 스프라이트 (physics.add.image → 물리 바디 자동 생성)
+    this.player = this.physics.add.image(100, 460, 'taepyeong');
+    this.player.setDisplaySize(48, 64);        // 화면 표시 크기
+    this.player.body.setSize(36, 60);          // 물리 히트박스 (이미지보다 약간 작게)
     this.player.body.setCollideWorldBounds(true);
 
     // 충돌
@@ -163,7 +170,7 @@ class GameScene extends Phaser.Scene {
   doSwap() {
     if (this.isGameOver) return;
     this.currentChar = this.currentChar === 'taepyeong' ? 'yunseul' : 'taepyeong';
-    this.player.fillColor = CHARS[this.currentChar].color;
+    this.player.setTexture(CHARS[this.currentChar].texture);
     this.jumpCount = this.player.body.blocked.down ? 0 : 2;
     this.isGliding = false;
     this.charLabel.setText(this.getCharLabel());
