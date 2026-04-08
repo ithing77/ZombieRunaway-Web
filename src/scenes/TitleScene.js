@@ -25,7 +25,7 @@ class TitleScene extends Phaser.Scene {
 
     // 메뉴 항목 정의 — label, callback
     const menuItems = [
-      { label: '▶  게임 시작',  action: () => this.scene.start('GameScene') },
+      { label: '▶  게임 시작',  action: () => this.scene.start('Stage1') },
       { label: '👤  만든 사람', action: () => this.showCredits() },
       { label: '🏆  랭킹',      action: () => this.showRanking() },
       { label: '✕  게임 종료',  action: () => this.showExit() },

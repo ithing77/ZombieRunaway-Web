@@ -14,8 +14,8 @@ const config = {
     default: 'arcade',
     arcade: { gravity: { y: 800 }, debug: false }
   },
-  // TitleScene 먼저 → GameScene 순서로 등록
-  scene: [TitleScene, GameScene],
+  // 타이틀 → 스테이지 1~5 순서로 등록
+  scene: [TitleScene, Stage1, Stage2, Stage3, Stage4, Stage5],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
