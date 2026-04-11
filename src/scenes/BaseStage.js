@@ -36,6 +36,7 @@ class BaseStage extends Phaser.Scene {
       frameHeight: 480,
     });
     this.load.image('yunseul', 'assets/yunseul.png');
+    this.load.image('ground',  'assets/ground.png');
   }
 
   // 패럴랙스 배경 텍스처 생성 (플레이스홀더 — 나중에 실제 이미지로 교체)
@@ -116,11 +117,16 @@ class BaseStage extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, d.worldWidth, 540);
     this.cameras.main.setBounds(0, 0, d.worldWidth, 540);
 
-    // 바닥
+    // 바닥 — 물리 바디 (투명)
     this.ground = this.physics.add.staticGroup();
-    const groundBox = this.add.rectangle(d.worldWidth / 2, 520, d.worldWidth, 40, 0x44aa44);
+    const groundBox = this.add.rectangle(d.worldWidth / 2, 524, d.worldWidth, 32, 0x000000, 0);
     this.physics.add.existing(groundBox, true);
     this.ground.add(groundBox);
+
+    // 바닥 — 시각적 타일 (ground.png 반복)
+    // tileSprite: 너비=worldWidth로 가로 루프, 높이=80으로 이미지 상단 잘라서 표시
+    this.groundVisual = this.add.tileSprite(d.worldWidth / 2, 500, d.worldWidth, 80, 'ground')
+      .setOrigin(0.5, 0);
 
     // 플랫폼
     this.platforms = this.physics.add.staticGroup();
