@@ -165,8 +165,7 @@ class BaseStage extends Phaser.Scene {
     // 플레이어 (sprite로 교체 — 애니메이션 지원)
     this.player = this.physics.add.sprite(100, 460, 'taepyeong');
     this.player.setDisplaySize(72, 72);
-    this.player.body.setSize(220, 360);   // 480px 기준 캐릭터 히트박스
-    this.player.body.setOffset(130, 100); // 프레임 안에서 캐릭터 위치 보정
+    this.player.body.setSize(38, 60, true); // 표시 크기(72×72) 기준 히트박스, 중앙 정렬
     this.player.body.setCollideWorldBounds(true);
 
     // 충돌 / 수집 / 골
@@ -244,15 +243,13 @@ class BaseStage extends Phaser.Scene {
     if (this.currentChar === 'taepyeong') {
       this.player.setTexture('taepyeong');
       this.player.setDisplaySize(72, 72);
-      this.player.body.setSize(220, 360);
-      this.player.body.setOffset(130, 100);
+      this.player.body.setSize(38, 60, true);
       this.player.play('taepyeong_run');
     } else {
       this.player.stop();
       this.player.setTexture('yunseul');
       this.player.setDisplaySize(48, 64);
-      this.player.body.setSize(36, 60);
-      this.player.body.setOffset(0, 0);
+      this.player.body.setSize(36, 60, true);
     }
   }
 
