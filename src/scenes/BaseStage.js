@@ -30,8 +30,12 @@ class BaseStage extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('taepyeong', 'assets/taepyeong.png');
-    this.load.image('yunseul',   'assets/yunseul.png');
+    // 태평: 스프라이트시트 (2400×2400, 5열×5행, 프레임당 480×480)
+    this.load.spritesheet('taepyeong', 'assets/taepyeong_run.png', {
+      frameWidth:  480,
+      frameHeight: 480,
+    });
+    this.load.image('yunseul', 'assets/yunseul.png');
   }
 
   // 패럴랙스 배경 텍스처 생성 (플레이스홀더 — 나중에 실제 이미지로 교체)
@@ -148,10 +152,21 @@ class BaseStage extends Phaser.Scene {
     this.isGameOver  = false;
     this.isCleared   = false;
 
-    // 플레이어
-    this.player = this.physics.add.image(100, 460, 'taepyeong');
-    this.player.setDisplaySize(48, 64);
-    this.player.body.setSize(36, 60);
+    // 태평 달리기 애니메이션 (row2~5 = 프레임 5~24)
+    if (!this.anims.exists('taepyeong_run')) {
+      this.anims.create({
+        key:       'taepyeong_run',
+        frames:    this.anims.generateFrameNumbers('taepyeong', { start: 5, end: 24 }),
+        frameRate: 14,
+        repeat:    -1,
+      });
+    }
+
+    // 플레이어 (sprite로 교체 — 애니메이션 지원)
+    this.player = this.physics.add.sprite(100, 460, 'taepyeong');
+    this.player.setDisplaySize(72, 72);
+    this.player.body.setSize(220, 360);   // 480px 기준 캐릭터 히트박스
+    this.player.body.setOffset(130, 100); // 프레임 안에서 캐릭터 위치 보정
     this.player.body.setCollideWorldBounds(true);
 
     // 충돌 / 수집 / 골
@@ -200,6 +215,9 @@ class BaseStage extends Phaser.Scene {
 
     // 카메라 팔로우
     this.cameras.main.startFollow(this.player, true, 1, 1);
+
+    // 시작 캐릭터(태평) 애니메이션 재생
+    this.player.play('taepyeong_run');
   }
 
   getCharLabel()    { return `▶ ${CHARS[this.currentChar].label}`; }
@@ -214,11 +232,28 @@ class BaseStage extends Phaser.Scene {
   doSwap() {
     if (this.isGameOver || this.isCleared) return;
     this.currentChar = this.currentChar === 'taepyeong' ? 'yunseul' : 'taepyeong';
-    this.player.setTexture(CHARS[this.currentChar].texture);
     this.jumpCount = this.player.body.blocked.down ? 0 : 2;
     this.isGliding = false;
+    this.updateCharVisual();
     this.charLabel.setText(this.getCharLabel());
     this.abilityLabel.setText(this.getAbilityLabel());
+  }
+
+  // 현재 캐릭터에 맞게 텍스처·애니메이션 전환
+  updateCharVisual() {
+    if (this.currentChar === 'taepyeong') {
+      this.player.setTexture('taepyeong');
+      this.player.setDisplaySize(72, 72);
+      this.player.body.setSize(220, 360);
+      this.player.body.setOffset(130, 100);
+      this.player.play('taepyeong_run');
+    } else {
+      this.player.stop();
+      this.player.setTexture('yunseul');
+      this.player.setDisplaySize(48, 64);
+      this.player.body.setSize(36, 60);
+      this.player.body.setOffset(0, 0);
+    }
   }
 
   doJump() {
