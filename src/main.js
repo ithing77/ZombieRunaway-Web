@@ -7,8 +7,9 @@ const config = {
   height: 540,
   backgroundColor: '#1a1a2e',
   render: {
-    pixelArt: true,    // 픽셀아트 안티앨리어싱 끄기
-    roundPixels: true, // 떨림 방지
+    pixelArt: true,         // 픽셀아트 안티앨리어싱 끄기
+    roundPixels: true,      // 떨림 방지
+    premultipliedAlpha: false, // 알파 프린징 완화
   },
   physics: {
     default: 'arcade',
